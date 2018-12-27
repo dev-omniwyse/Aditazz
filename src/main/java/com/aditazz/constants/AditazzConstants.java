@@ -14,5 +14,8 @@ public class AditazzConstants {
 	public static final String LINES_EQUAL="isLinesEqual";
 	public static final String VALID_DISTANCE="isValidDistance";
 	public static final String TOTAL="total";
+	public static final double SECONDS_PER_MINUTE=60;
+	public static final double MSSECONDS_PER_SECOND=1000;
 }
+
 

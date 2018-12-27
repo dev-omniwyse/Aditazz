@@ -4,6 +4,7 @@
 package com.aditazz.controller;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -36,10 +37,10 @@ public class RootController {
 	public ResponseEntity<?> generateReport(@RequestBody InputDTO inputDTO){
 		try {
 			
-			Map<String,AditazzStatsDTO> stats=aditazzService.generateStats(inputDTO);
-			JSONResultEntity<Map<String,AditazzStatsDTO>> response = new JSONResultEntity<Map<String,AditazzStatsDTO>>(
+			List<AditazzStatsDTO> stats=aditazzService.generateStats(inputDTO);
+			JSONResultEntity<AditazzStatsDTO> response = new JSONResultEntity<AditazzStatsDTO>(
 	                true, "Success", null,
-	                Arrays.asList(stats));
+	                stats);
 	        return new ResponseEntity<JSONResultEntity<?>>(response,
 	                HttpStatus.OK);
 		} catch (Exception e) {

@@ -79,8 +79,7 @@ public class EquipmentService {
 	 *
 	 */
 	public JsonObject getEquipments(Aditazz aditazz) {
-		JsonObject jsonObject=RestUtil.getObject(aditazz.getAuthToken(), null, UrlConstants.EQUIPMENT_LIB_URL+aditazz.getEquipLibId());
-		return jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
+		return RestUtil.getObject(aditazz.getAuthToken(), null, UrlConstants.EQUIPMENT_LIB_URL+aditazz.getEquipLibId());
 	}
 	
 	/**
@@ -106,13 +105,13 @@ public class EquipmentService {
 	 * @date : 06-Dec-2018 3:19:03 PM
 	 * @param aditazz
 	 * @param payloadObj
+	 * @param updatedLib
 	 * @return
 	 * @return : boolean
 	 *
 	 */
-	public boolean updateEquipmentLibrary(Aditazz aditazz,JsonObject payloadObj) {
-		JsonObject jsonObject=RestUtil.getObject(aditazz.getAuthToken(), null, UrlConstants.EQUIPMENT_LIB_URL+aditazz.getEquipLibId());
-		JsonObject libraryObj=jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject();
+	public boolean updateEquipmentLibrary(Aditazz aditazz,JsonObject payloadObj,JsonObject updatedLib) {
+		JsonObject libraryObj=updatedLib.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject();
 		libraryObj.add(JsonFields.PAYLOAD.getValue(), payloadObj);
 		logger.info("Updating equipment library.............!");
 		JsonObject response=RestUtil.putObject(aditazz.getAuthToken(), libraryObj, UrlConstants.EQUIPMENT_LIB_URL+aditazz.getEquipLibId());

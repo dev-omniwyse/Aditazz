@@ -13,10 +13,10 @@ public class AditazzStatsDTO {
 	private int numberOfRulesChecked;
 	private String equivalency;
 	private String isTimedOut;
-	private long equipmentPlacementTime;//secs
-	private long pipeRouterTime;//secs
-	private long equivalencyVerifiedTime;//secs
-	private long totalElpsedTime;//minutes
+	private double equipmentPlacementTime;//secs
+	private double pipeRouterTime;//secs
+	private double equivalencyVerifiedTime;//secs
+	private double totalElpsedTime;//minutes
 	private int throughput;
 	
 	public int getNumberOfObjects() {
@@ -43,16 +43,16 @@ public class AditazzStatsDTO {
 	public void setIsTimedOut(String isTimedOut) {
 		this.isTimedOut = isTimedOut;
 	}
-	public long getPipeRouterTime() {
+	public double getPipeRouterTime() {
 		return pipeRouterTime;
 	}
-	public void setPipeRouterTime(long pipeRouterTime) {
+	public void setPipeRouterTime(double pipeRouterTime) {
 		this.pipeRouterTime = pipeRouterTime;
 	}
-	public long getEquivalencyVerifiedTime() {
+	public double getEquivalencyVerifiedTime() {
 		return equivalencyVerifiedTime;
 	}
-	public void setEquivalencyVerifiedTime(long equivalencyVerifiedTime) {
+	public void setEquivalencyVerifiedTime(double equivalencyVerifiedTime) {
 		this.equivalencyVerifiedTime = equivalencyVerifiedTime;
 	}
 	public int getThroughput() {
@@ -74,16 +74,16 @@ public class AditazzStatsDTO {
 		this.lines = lines;
 	}
 	
-	public long getEquipmentPlacementTime() {
+	public double getEquipmentPlacementTime() {
 		return equipmentPlacementTime;
 	}
-	public void setEquipmentPlacementTime(long equipmentPlacementTime) {
+	public void setEquipmentPlacementTime(double equipmentPlacementTime) {
 		this.equipmentPlacementTime = equipmentPlacementTime;
 	}
-	public long getTotalElpsedTime() {
+	public double getTotalElpsedTime() {
 		return totalElpsedTime;
 	}
-	public void setTotalElpsedTime(long totalElpsedTime) {
+	public void setTotalElpsedTime(double totalElpsedTime) {
 		this.totalElpsedTime = totalElpsedTime;
 	}
 	

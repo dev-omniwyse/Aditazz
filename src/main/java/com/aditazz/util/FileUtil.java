@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +45,5 @@ public class FileUtil {
 			throw e;
 		}
 	}
-	
-	
-	public static void main(String[] args) throws IOException {
-		FileUtil fileUtil=new FileUtil();
-		fileUtil.createFile("C:\\Users\\shiva\\Documents", "Hello world", "abc.txt");
-	}
+	 
 }

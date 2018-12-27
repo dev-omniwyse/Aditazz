@@ -79,7 +79,8 @@ public class RandomGraphGenerator {
 		int counter=0;
 		String lineId="L000";
 		JsonObject equipmentLib=equipmentService.getEquipments(aditazz);
-		List<String> equipOrder=equipmentService.jsonStringToArray(equipmentLib);
+		JsonObject payloadLib=equipmentLib.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
+		List<String> equipOrder=equipmentService.jsonStringToArray(payloadLib);
 		equipOrder=equipmentService.createDuplacateEquipments(equipOrder, numberOfNodes);
 		List<String> pipeIds=pipeService.getListOfPipes(aditazz);
 		pipeIds=pipeService.createDuplacatePipes(pipeIds, numberOfEdges);
@@ -87,7 +88,7 @@ public class RandomGraphGenerator {
 		int pipeCounter=0;
 		int x=102;
 		int y=112;
-		Map<String,JsonObject> spacingTable=equipmentService.getSpacingTableFromLib(equipmentLib);
+		Map<String,JsonObject> spacingTable=equipmentService.getSpacingTableFromLib(payloadLib);
 		for (DefaultEdge edge: graph.edgeSet()) {
 			List<Integer[]> path=new ArrayList<>();
 			PfdEquipment sourceEquipment=null;
@@ -143,8 +144,8 @@ public class RandomGraphGenerator {
 			pipeCounter++;
 			
 		}
-		equipmentLib.add(JsonFields.SPACING.getValue(), new Gson().toJsonTree(spacingTable));
-		equipmentService.updateEquipmentLibrary(aditazz, equipmentLib);
+		payloadLib.add(JsonFields.SPACING.getValue(), new Gson().toJsonTree(spacingTable));
+		equipmentService.updateEquipmentLibrary(aditazz, payloadLib,equipmentLib);
 		logger.info("Graph is :: {} ",graph);
 		JsonObject jsonObject=new JsonObject();
 		jsonObject.add(JsonFields.EQUIPMENT.getValue(), equipmentJson);

@@ -1,8 +1,8 @@
 package com.aditazz.service;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +48,12 @@ public class AditazzService {
 	@Autowired 
 	RandomGraphGenerator randomGraphGenerator;
 	
+	private static DecimalFormat decimalFormat = new DecimalFormat(".##");
+	
 	
 	private static final Logger logger = LoggerFactory.getLogger(AditazzService.class);
 	
-	public Map<String,AditazzStatsDTO> generateStats(InputDTO inputDTO) throws IOException{
+	public List<AditazzStatsDTO> generateStats(InputDTO inputDTO) throws IOException{
 		List<AditazzStatsDTO> aditazzStatsDTOs=new ArrayList<>();
 		logger.info("Minimum nodes :: {} Max nodes ::{} Increment size :: {}", inputDTO.getMinNodes(),inputDTO.getMaxNodes(),inputDTO.getIncrementSize());
 		FileUtil fileUtil=new FileUtil();
@@ -68,7 +70,7 @@ public class AditazzService {
 		
 		properties.load(AditazzService.class.getClassLoader().getResourceAsStream("option_plan.properties"));
 		aditazz=getLibraryIds(aditazz);
-		Map<String,AditazzStatsDTO> response=new HashMap<>();
+		List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 		int counter=0;
 		for(Entry<Object, Object> entry : properties.entrySet()) {
 			aditazz.setOptionId(entry.getKey().toString());
@@ -77,7 +79,7 @@ public class AditazzService {
 			for (int numberOfNodes=inputDTO.getMinNodes();numberOfNodes<inputDTO.getMaxNodes();) {
 				counter++;
 				AditazzStatsDTO aditazzStatsDTO=new AditazzStatsDTO();
-				Date startDate=new Date();
+				long start = System.currentTimeMillis( );
 				if(counter != 1)
 					numberOfNodes=numberOfNodes*inputDTO.getIncrementSize();
 				
@@ -89,8 +91,10 @@ public class AditazzService {
 				aditazzStatsDTO.setNumberOfObjects(numberOfNodes+numberOfEdges);
 				
 				JsonObject pfdObject=getPfdObject(aditazz);
+				JsonObject equipPayload=equipmentService.getEquipments(aditazz).get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				JsonObject payloadObj=randomGraphGenerator.generateRandomGraph(aditazz, numberOfNodes, numberOfEdges);
-				JsonObject updatedLib=equipmentService.getEquipments(aditazz);
+				JsonObject updatedEquipments=equipmentService.getEquipments(aditazz);
+				JsonObject updatedLib=updatedEquipments.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				//fileUtil.createFile(path, updatedLib.toString(), "updated_equipment_library");
 				int revision=equipmentService.getRevisonNumber(aditazz);
 				updateProjectEquipLibRevison(revision, aditazz);
@@ -100,16 +104,16 @@ public class AditazzService {
 				
 				int revison=new JsonReader().getPfdRevision(pfdObject)+1;
 				updateOptionRevison(aditazz, revison);
-				
+				//jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				
 				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO) ;
 				JsonObject planObject=getPlan(aditazz);
 				//fileUtil.createFile(path, planObject.toString(), "new_plan");
 				logger.info("Validating plan and pfd");
-				Date equivalencyStartDate=new Date();
+				long equivalencyStartTime=System.currentTimeMillis();
 				Map<String,Boolean> result=validator.validatePlanAndPfd(pfdObject, planObject, updatedLib,aditazzStatsDTO);
-				Date equivalencyEndDate=new Date();
-				aditazzStatsDTO.setEquivalencyVerifiedTime((equivalencyEndDate.getTime()-equivalencyStartDate.getTime())/1000);
+				long equivalencyEndTime=System.currentTimeMillis();
+				aditazzStatsDTO.setEquivalencyVerifiedTime((equivalencyEndTime-equivalencyStartTime)/AditazzConstants.MSSECONDS_PER_SECOND);
 				
 				
 				if(result.get(AditazzConstants.EQUIPMENT_EQUAL) && result.get(AditazzConstants.VALID_DISTANCE) && result.get(AditazzConstants.LINES_EQUAL))
@@ -117,17 +121,23 @@ public class AditazzService {
 				else
 					aditazzStatsDTO.setEquivalency("N");
 				
-				aditazzStatsDTO.setIsTimedOut("Y");
+				aditazzStatsDTO.setIsTimedOut("N");
 				
-				Date endDate=new Date();
-				aditazzStatsDTO.setTotalElpsedTime((endDate.getTime()-startDate.getTime())/ (60 * 1000) % 60);
+				logger.info("Reverting spacing changes in equipment library ");
+				equipmentService.updateEquipmentLibrary(aditazz, equipPayload,updatedEquipments);
+				revision=equipmentService.getRevisonNumber(aditazz);
+				logger.info("Updating equipment revison in projects :: {}",revision);
+				updateProjectEquipLibRevison(revision, aditazz);
+				
+				long end = System.currentTimeMillis( );
+				aditazzStatsDTO.setTotalElpsedTime(Double.parseDouble(decimalFormat.format(((end-start)/AditazzConstants.MSSECONDS_PER_SECOND)/AditazzConstants.SECONDS_PER_MINUTE)));
 				
 				aditazzStatsDTOs.add(aditazzStatsDTO);
-				response.put(String.valueOf(counter), aditazzStatsDTO);
+				response.add(aditazzStatsDTO);
 			}
 			logger.info("Process ends with Option id :: {} ",entry.getKey());
 		}
-		response.put(AditazzConstants.TOTAL, calculateTotalStats(aditazzStatsDTOs));
+		response.add(calculateTotalStats(aditazzStatsDTOs));
 		return response;
 	}
 	/**
@@ -146,10 +156,10 @@ public class AditazzService {
 		int lines=0;
 		int numberOfObjects=0;
 		int numberOfRulesChecked=0;
-		long equipmentPlacementTime=0;//secs
-		long pipeRouterTime=0;//secs
-		long equivalencyVerifiedTime=0;//secs
-		long totalElpsedTime=0;//minutes
+		double equipmentPlacementTime=0;//secs
+		double pipeRouterTime=0;//secs
+		double equivalencyVerifiedTime=0;//secs
+		double totalElpsedTime=0;//minutes
 		int throughput=0;
 		for (AditazzStatsDTO aditazzStats : aditazzStatsDTOs) {
 			equipments+=aditazzStats.getEquipments();
@@ -209,7 +219,7 @@ public class AditazzService {
 		String status = null;
 		
 		for (int i=0;i<runTypes.length;i++) {
-			Date startDate=new Date();
+			long startTime=System.currentTimeMillis();
 			JsonObject output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runTypes[i]+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
 			String ticketId=output.get(JsonFields.ID.getValue()).getAsString();
 			logger.info("Ticket Id : {} " , ticketId);
@@ -225,11 +235,11 @@ public class AditazzService {
 					logger.error("Thread exception occured due to "+e.getMessage(),e);
 				}
 			}
-			Date endDate=new Date();
+			long endTime=System.currentTimeMillis();
 			if(UrlConstants.PLACE.equals(runTypes[i]))
-				aditazzStatsDTO.setEquipmentPlacementTime((endDate.getTime()-startDate.getTime())/1000);
+				aditazzStatsDTO.setEquipmentPlacementTime((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND);
 			else if(UrlConstants.ROUTE.equals(runTypes[i]))
-				aditazzStatsDTO.setPipeRouterTime((endDate.getTime()-startDate.getTime())/1000);
+				aditazzStatsDTO.setPipeRouterTime((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND);
 			logger.info("Ticket Status : {} " , status);
 		}
 		return status;
