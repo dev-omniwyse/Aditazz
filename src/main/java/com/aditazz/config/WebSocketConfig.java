@@ -20,7 +20,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
 		registry
 		.addEndpoint("/aditazz-endpoint")
-		.setAllowedOrigins("http://localhost:4200")
+		.setAllowedOrigins("http://aditazz.com.s3-website-us-east-1.amazonaws.com")
 		.withSockJS();
 	}
 }
