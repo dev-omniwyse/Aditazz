@@ -1,9 +1,7 @@
 package com.aditazz.service;
 
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import com.aditazz.constants.AditazzConstants;
 import com.aditazz.constants.UrlConstants;
-import com.aditazz.controller.WebController;
 import com.aditazz.dto.AditazzStatsDTO;
 import com.aditazz.dto.InputDTO;
 import com.aditazz.enums.JsonFields;
