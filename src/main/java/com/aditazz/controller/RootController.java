@@ -39,14 +39,14 @@ public class RootController {
 			
 			List<AditazzStatsDTO> stats=aditazzService.generateStats(inputDTO);
 			JSONResultEntity<AditazzStatsDTO> response = new JSONResultEntity<AditazzStatsDTO>(
-	                true, "Success", null,
+	                true, "Success", null,false,
 	                stats);
 	        return new ResponseEntity<JSONResultEntity<?>>(response,
 	                HttpStatus.OK);
 		} catch (Exception e) {
 			logger.error(e.getMessage(),e);
 			JSONResultEntity<InputDTO> response = new JSONResultEntity<InputDTO>(
-	                true, "Error",Arrays.asList(e.getMessage()), null);
+	                true, "Error",Arrays.asList(e.getMessage()),false, null);
 			return new ResponseEntity<JSONResultEntity<?>>(response,HttpStatus.BAD_REQUEST);
 		}
 		

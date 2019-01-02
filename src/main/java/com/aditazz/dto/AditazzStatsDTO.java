@@ -17,7 +17,7 @@ public class AditazzStatsDTO {
 	private double pipeRouterTime;//secs
 	private double equivalencyVerifiedTime;//secs
 	private double totalElpsedTime;//minutes
-	private int throughput;
+	private double throughput;
 	
 	public int getNumberOfObjects() {
 		return numberOfObjects;
@@ -55,12 +55,6 @@ public class AditazzStatsDTO {
 	public void setEquivalencyVerifiedTime(double equivalencyVerifiedTime) {
 		this.equivalencyVerifiedTime = equivalencyVerifiedTime;
 	}
-	public int getThroughput() {
-		return throughput;
-	}
-	public void setThroughput(int throughput) {
-		this.throughput = throughput;
-	}
 	public int getEquipments() {
 		return equipments;
 	}
@@ -85,6 +79,12 @@ public class AditazzStatsDTO {
 	}
 	public void setTotalElpsedTime(double totalElpsedTime) {
 		this.totalElpsedTime = totalElpsedTime;
+	}
+	public double getThroughput() {
+		return throughput;
+	}
+	public void setThroughput(double throughput) {
+		this.throughput = throughput;
 	}
 	
 	

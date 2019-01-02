@@ -13,14 +13,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import com.aditazz.constants.AditazzConstants;
 import com.aditazz.constants.UrlConstants;
+import com.aditazz.controller.WebController;
 import com.aditazz.dto.AditazzStatsDTO;
 import com.aditazz.dto.InputDTO;
 import com.aditazz.enums.JsonFields;
 import com.aditazz.model.Aditazz;
+import com.aditazz.model.JSONResultEntity;
 import com.aditazz.util.FileUtil;
 import com.aditazz.util.JsonReader;
 import com.aditazz.util.RestUtil;
@@ -48,12 +51,15 @@ public class AditazzService {
 	@Autowired 
 	RandomGraphGenerator randomGraphGenerator;
 	
+	@Autowired
+	private SimpMessagingTemplate messagingTemplate;
+	
 	private static DecimalFormat decimalFormat = new DecimalFormat(".##");
 	
 	
 	private static final Logger logger = LoggerFactory.getLogger(AditazzService.class);
 	
-	public List<AditazzStatsDTO> generateStats(InputDTO inputDTO) throws IOException{
+	public List<AditazzStatsDTO> generateStats(InputDTO inputDTO) throws Exception{
 		List<AditazzStatsDTO> aditazzStatsDTOs=new ArrayList<>();
 		logger.info("Minimum nodes :: {} Max nodes ::{} Increment size :: {}", inputDTO.getMinNodes(),inputDTO.getMaxNodes(),inputDTO.getIncrementSize());
 		FileUtil fileUtil=new FileUtil();
@@ -70,13 +76,13 @@ public class AditazzService {
 		
 		properties.load(AditazzService.class.getClassLoader().getResourceAsStream("option_plan.properties"));
 		aditazz=getLibraryIds(aditazz);
-		List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 		int counter=0;
 		for(Entry<Object, Object> entry : properties.entrySet()) {
 			aditazz.setOptionId(entry.getKey().toString());
 			logger.info("Process started with Option id :: {} ",entry.getKey());
 			aditazz=getPlanAndPfdId(aditazz);
 			for (int numberOfNodes=inputDTO.getMinNodes();numberOfNodes<inputDTO.getMaxNodes();) {
+				List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 				counter++;
 				AditazzStatsDTO aditazzStatsDTO=new AditazzStatsDTO();
 				long start = System.currentTimeMillis( );
@@ -131,13 +137,24 @@ public class AditazzService {
 				
 				long end = System.currentTimeMillis( );
 				aditazzStatsDTO.setTotalElpsedTime(Double.parseDouble(decimalFormat.format(((end-start)/AditazzConstants.MSSECONDS_PER_SECOND)/AditazzConstants.SECONDS_PER_MINUTE)));
+				double throughput = Math.round((numberOfNodes + numberOfEdges) * (aditazzStatsDTO.getNumberOfRulesChecked()/aditazzStatsDTO.getEquivalencyVerifiedTime()));
+				aditazzStatsDTO.setThroughput(throughput);
 				
 				aditazzStatsDTOs.add(aditazzStatsDTO);
 				response.add(aditazzStatsDTO);
+				JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
+		                true, "Success", null,false,
+		                response);
+				messagingTemplate.convertAndSend("/data/tableData", results);
 			}
 			logger.info("Process ends with Option id :: {} ",entry.getKey());
 		}
+		List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 		response.add(calculateTotalStats(aditazzStatsDTOs));
+		JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
+                true, "Success", null,true,
+                response);
+		messagingTemplate.convertAndSend("/data/tableData", results);
 		return response;
 	}
 	/**
