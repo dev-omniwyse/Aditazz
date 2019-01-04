@@ -1,5 +1,7 @@
 package com.aditazz.dto;
 
+import java.util.List;
+
 import com.google.gson.JsonObject;
 
 /**
@@ -24,6 +26,7 @@ public class AditazzStatsDTO {
 	private String updatedLib;
 	private String pfdObject;
 	private String planObject;
+	private List<String> equivalencyStatus;
 	
 	public int getNumberOfObjects() {
 		return numberOfObjects;
@@ -110,6 +113,10 @@ public class AditazzStatsDTO {
 	public void setPlanObject(String planObject) {
 		this.planObject = planObject;
 	}
-	
-	
+	public List<String> getEquivalencyStatus() {
+		return equivalencyStatus;
+	}
+	public void setEquivalencyStatus(List<String> equivalencyStatus) {
+		this.equivalencyStatus = equivalencyStatus;
+	}
 }

@@ -186,7 +186,7 @@ public class AditazzService implements Serializable{
 		double pipeRouterTime=0;//secs
 		double equivalencyVerifiedTime=0;//secs
 		double totalElpsedTime=0;//minutes
-		int throughput=0;
+		double throughput=0;
 		for (AditazzStatsDTO aditazzStats : aditazzStatsDTOs) {
 			equipments+=aditazzStats.getEquipments();
 			lines+=aditazzStats.getLines();

@@ -1,6 +1,7 @@
 package com.aditazz.validator;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,7 +19,6 @@ import com.aditazz.enums.JsonFields;
 import com.aditazz.model.PlanEquipment;
 import com.aditazz.service.EquipmentService;
 import com.aditazz.util.DistanceUtil;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -57,24 +57,32 @@ public class Validator {
 	    	boolean isLinesEqual=validateLineObjects(pfdPayloadObject, planPayloadObject,aditazzStatsDTO);
 	    	if(isLinesEqual) {
 				logger.info("Number of lines are equal");
+				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of lines are equal"));
 			}else {
 				logger.info("Number of lines are not equal");
+				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of lines are not equal"));
 			}
 	    	
 	    	//Equipment Validation
 	    	boolean isEquipmentEqual=validateEquipments(pfdPayloadObject, planPayloadObject,aditazzStatsDTO);
 	    	if(isEquipmentEqual) {
 				logger.info("Number of equipments are equal");
+				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of equipments are equal"));
 			}else {
 				logger.info("Number of equipments are not equal");
+				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of equipments are not equal"));
 			}
 	    	boolean isValidDistance=false;
 	    	if(isEquipmentEqual && isLinesEqual) {
 	    		isValidDistance=validateDistance(equimentLib, planPayloadObject,pfdPayloadObject,aditazzStatsDTO);
-	    		if(isValidDistance)
+	    		if(isValidDistance){
 	    			logger.info("Valid distance found between source and target");
-	    		else
+	    			aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Valid distance found between source and target"));
+	    		}
+	    		else{
 	    			logger.info("Invalid distance found between source and target");
+	    			aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Invalid distance found between source and target"));
+	    		}
 	    	}
 	    	result.put(AditazzConstants.LINES_EQUAL, isLinesEqual);
 	    	result.put(AditazzConstants.EQUIPMENT_EQUAL, isEquipmentEqual);
