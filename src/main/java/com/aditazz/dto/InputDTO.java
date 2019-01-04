@@ -22,6 +22,8 @@ public class InputDTO {
 	private Integer iterationTimeLimit;
 	
 	private Integer overAllTimeLimit;
+	
+	private String userName;
 
 	public Integer getIterationTimeLimit() {
 		return iterationTimeLimit;
@@ -77,6 +79,14 @@ public class InputDTO {
 
 	public void setIncrementSize(Integer incrementSize) {
 		this.incrementSize = incrementSize;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
 	}
 	
 }

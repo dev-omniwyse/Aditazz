@@ -1,4 +1,7 @@
 package com.aditazz.dto;
+
+import com.google.gson.JsonObject;
+
 /**
  * 
  * @author      : Sreekhar Reddy.K
@@ -18,6 +21,9 @@ public class AditazzStatsDTO {
 	private double equivalencyVerifiedTime;//secs
 	private double totalElpsedTime;//minutes
 	private double throughput;
+	private String updatedLib;
+	private String pfdObject;
+	private String planObject;
 	
 	public int getNumberOfObjects() {
 		return numberOfObjects;
@@ -86,7 +92,24 @@ public class AditazzStatsDTO {
 	public void setThroughput(double throughput) {
 		this.throughput = throughput;
 	}
-	
+	public String getUpdatedLib() {
+		return updatedLib;
+	}
+	public void setUpdatedLib(String updatedLib) {
+		this.updatedLib = updatedLib;
+	}
+	public String getPfdObject() {
+		return pfdObject;
+	}
+	public void setPfdObject(String pfdObject) {
+		this.pfdObject = pfdObject;
+	}
+	public String getPlanObject() {
+		return planObject;
+	}
+	public void setPlanObject(String planObject) {
+		this.planObject = planObject;
+	}
 	
 	
 }

@@ -1,11 +1,13 @@
 package com.aditazz.service;
 
+import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +40,12 @@ import com.google.gson.JsonObject;
  * @description : The class AditazzService.java used for process pfd and plan
  */
 @Service
-public class AditazzService {
+public class AditazzService implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	@Autowired
 	Environment environment;
 	
@@ -70,7 +77,6 @@ public class AditazzService {
 		aditazz.setAuthToken(authToken);
 		aditazz.setProjectId(projectId);
 		String path=environment.getProperty("aditazz.path");
-		
 		properties.load(AditazzService.class.getClassLoader().getResourceAsStream("option_plan.properties"));
 		aditazz=getLibraryIds(aditazz);
 		int counter=0;
@@ -89,7 +95,9 @@ public class AditazzService {
 				if(numberOfNodes>inputDTO.getMaxNodes())
 					numberOfNodes=inputDTO.getMaxNodes();
 				aditazzStatsDTO.setEquipments(numberOfNodes);
-				int numberOfEdges=numberOfNodes*2;
+				Random r = new Random();
+				int numberOfEdges = r.nextInt((numberOfNodes+(numberOfNodes+2))-numberOfNodes) + numberOfNodes;
+				//int numberOfEdges=numberOfNodes*2;
 				aditazzStatsDTO.setLines(numberOfEdges);
 				aditazzStatsDTO.setNumberOfObjects(numberOfNodes+numberOfEdges);
 				
@@ -99,12 +107,13 @@ public class AditazzService {
 				JsonObject updatedEquipments=equipmentService.getEquipments(aditazz);
 				JsonObject updatedLib=updatedEquipments.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				//fileUtil.createFile(path, updatedLib.toString(), "updated_equipment_library");
+				aditazzStatsDTO.setUpdatedLib(updatedLib.toString());
 				int revision=equipmentService.getRevisonNumber(aditazz);
 				updateProjectEquipLibRevison(revision, aditazz);
 				pfdObject.add(JsonFields.PAYLOAD.getValue(), payloadObj);
 				updatePFD(pfdObject, aditazz) ;
 				//fileUtil.createFile(path, pfdObject.toString(), "updated_pfd");
-				
+				aditazzStatsDTO.setPfdObject(pfdObject.toString());
 				int revison=new JsonReader().getPfdRevision(pfdObject)+1;
 				updateOptionRevison(aditazz, revison);
 				//jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
@@ -112,11 +121,13 @@ public class AditazzService {
 				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO) ;
 				JsonObject planObject=getPlan(aditazz);
 				//fileUtil.createFile(path, planObject.toString(), "new_plan");
+				aditazzStatsDTO.setPlanObject(planObject.toString());
 				logger.info("Validating plan and pfd");
 				long equivalencyStartTime=System.currentTimeMillis();
 				Map<String,Boolean> result=validator.validatePlanAndPfd(pfdObject, planObject, updatedLib,aditazzStatsDTO);
 				long equivalencyEndTime=System.currentTimeMillis();
-				aditazzStatsDTO.setEquivalencyVerifiedTime((equivalencyEndTime-equivalencyStartTime)/AditazzConstants.MSSECONDS_PER_SECOND);
+				double equivalencyTime = Math.round((equivalencyEndTime-equivalencyStartTime)/AditazzConstants.MSSECONDS_PER_SECOND*100D)/100D;
+				aditazzStatsDTO.setEquivalencyVerifiedTime(equivalencyTime);
 				
 				
 				if(result.get(AditazzConstants.EQUIPMENT_EQUAL) && result.get(AditazzConstants.VALID_DISTANCE) && result.get(AditazzConstants.LINES_EQUAL))
@@ -133,8 +144,9 @@ public class AditazzService {
 				updateProjectEquipLibRevison(revision, aditazz);
 				
 				long end = System.currentTimeMillis( );
-				aditazzStatsDTO.setTotalElpsedTime(Double.parseDouble(decimalFormat.format(((end-start)/AditazzConstants.MSSECONDS_PER_SECOND)/AditazzConstants.SECONDS_PER_MINUTE)));
-				double throughput = Math.round((numberOfNodes + numberOfEdges) * (aditazzStatsDTO.getNumberOfRulesChecked()/aditazzStatsDTO.getEquivalencyVerifiedTime()));
+				double totalTime = Math.round((aditazzStatsDTO.getEquipmentPlacementTime() + aditazzStatsDTO.getPipeRouterTime() + aditazzStatsDTO.getEquivalencyVerifiedTime())/60*100D)/100D;
+				aditazzStatsDTO.setTotalElpsedTime(totalTime);
+				double throughput = Math.round((aditazzStatsDTO.getNumberOfObjects() * aditazzStatsDTO.getNumberOfRulesChecked())/(aditazzStatsDTO.getEquipmentPlacementTime() + aditazzStatsDTO.getPipeRouterTime() + aditazzStatsDTO.getEquivalencyVerifiedTime())*100D)/100D;
 				aditazzStatsDTO.setThroughput(throughput);
 				
 				aditazzStatsDTOs.add(aditazzStatsDTO);
@@ -142,7 +154,7 @@ public class AditazzService {
 				JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
 		                true, "Success", null,false,
 		                response);
-				messagingTemplate.convertAndSend("/data/tableData", results);
+				messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
 			}
 			logger.info("Process ends with Option id :: {} ",entry.getKey());
 		}
@@ -151,7 +163,7 @@ public class AditazzService {
 		JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
                 true, "Success", null,true,
                 response);
-		messagingTemplate.convertAndSend("/data/tableData", results);
+		messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
 		return response;
 	}
 	/**
@@ -190,11 +202,11 @@ public class AditazzService {
 		aditazzStatsDTO.setLines(lines);
 		aditazzStatsDTO.setNumberOfObjects(numberOfObjects);
 		aditazzStatsDTO.setNumberOfRulesChecked(numberOfRulesChecked);
-		aditazzStatsDTO.setEquipmentPlacementTime(equipmentPlacementTime);
-		aditazzStatsDTO.setPipeRouterTime(pipeRouterTime);
-		aditazzStatsDTO.setEquivalencyVerifiedTime(equivalencyVerifiedTime);
-		aditazzStatsDTO.setTotalElpsedTime(totalElpsedTime);
-		aditazzStatsDTO.setThroughput(throughput);
+		aditazzStatsDTO.setEquipmentPlacementTime(Math.round(equipmentPlacementTime*100D)/100D);
+		aditazzStatsDTO.setPipeRouterTime(Math.round(pipeRouterTime*100D)/100D);
+		aditazzStatsDTO.setEquivalencyVerifiedTime(Math.round(equivalencyVerifiedTime*100D)/100D);
+		aditazzStatsDTO.setTotalElpsedTime(Math.round(totalElpsedTime*100D)/100D);
+		aditazzStatsDTO.setThroughput(Math.round(throughput*100D)/100D);
 		return aditazzStatsDTO;
 	}
 	
@@ -251,9 +263,9 @@ public class AditazzService {
 			}
 			long endTime=System.currentTimeMillis();
 			if(UrlConstants.PLACE.equals(runTypes[i]))
-				aditazzStatsDTO.setEquipmentPlacementTime((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND);
+				aditazzStatsDTO.setEquipmentPlacementTime(Math.round((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND*100D)/100D);
 			else if(UrlConstants.ROUTE.equals(runTypes[i]))
-				aditazzStatsDTO.setPipeRouterTime((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND);
+				aditazzStatsDTO.setPipeRouterTime(Math.round((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND*100D)/100D);
 			logger.info("Ticket Status : {} " , status);
 		}
 		return status;
