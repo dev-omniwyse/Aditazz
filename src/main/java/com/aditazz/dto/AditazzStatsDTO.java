@@ -27,6 +27,7 @@ public class AditazzStatsDTO {
 	private String pfdObject;
 	private String planObject;
 	private List<String> equivalencyStatus;
+	private StringBuilder serverLog = new StringBuilder();
 	
 	public int getNumberOfObjects() {
 		return numberOfObjects;
@@ -118,5 +119,11 @@ public class AditazzStatsDTO {
 	}
 	public void setEquivalencyStatus(List<String> equivalencyStatus) {
 		this.equivalencyStatus = equivalencyStatus;
+	}
+	public StringBuilder getServerLog() {
+		return serverLog;
+	}
+	public void setServerLog(StringBuilder serverLog) {
+		this.serverLog = serverLog;
 	}
 }

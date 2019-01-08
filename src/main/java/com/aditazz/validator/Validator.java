@@ -48,6 +48,7 @@ public class Validator {
 	 */
 	public Map<String,Boolean> validatePlanAndPfd(JsonObject pfdObject,JsonObject planObject,JsonObject equimentLib,AditazzStatsDTO aditazzStatsDTO) {
 		Map<String, Boolean> result=null;
+		StringBuilder serverLog = new StringBuilder();
 		try {
 			result=new HashMap<>();
 			JsonObject planPayloadObject=getPayloadFromPlan(planObject);
@@ -58,9 +59,11 @@ public class Validator {
 	    	if(isLinesEqual) {
 				logger.info("Number of lines are equal");
 				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of lines are equal"));
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Number of lines are equal");
 			}else {
 				logger.info("Number of lines are not equal");
 				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of lines are not equal"));
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Number of lines are not equal");
 			}
 	    	
 	    	//Equipment Validation
@@ -68,9 +71,11 @@ public class Validator {
 	    	if(isEquipmentEqual) {
 				logger.info("Number of equipments are equal");
 				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of equipments are equal"));
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Number of equipments are equal");
 			}else {
 				logger.info("Number of equipments are not equal");
 				aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Number of equipments are not equal"));
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Number of equipments are not equal");
 			}
 	    	boolean isValidDistance=false;
 	    	if(isEquipmentEqual && isLinesEqual) {
@@ -78,12 +83,15 @@ public class Validator {
 	    		if(isValidDistance){
 	    			logger.info("Valid distance found between source and target");
 	    			aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Valid distance found between source and target"));
+	    			serverLog.append(AditazzConstants.LINE_SEPARATOR + "Valid distance found between source and target");
 	    		}
 	    		else{
 	    			logger.info("Invalid distance found between source and target");
 	    			aditazzStatsDTO.setEquivalencyStatus(Arrays.asList("Invalid distance found between source and target"));
+	    			serverLog.append(AditazzConstants.LINE_SEPARATOR + "Invalid distance found between source and target");
 	    		}
 	    	}
+	    	aditazzStatsDTO.getServerLog().append(AditazzConstants.LINE_SEPARATOR + serverLog.toString());
 	    	result.put(AditazzConstants.LINES_EQUAL, isLinesEqual);
 	    	result.put(AditazzConstants.EQUIPMENT_EQUAL, isEquipmentEqual);
 	    	result.put(AditazzConstants.VALID_DISTANCE, isValidDistance);
@@ -107,6 +115,7 @@ public class Validator {
 	 */
 	private boolean validateLineObjects(JsonObject pfdPayload,JsonObject planPayload,AditazzStatsDTO aditazzStatsDTO) {
 		boolean isEqual=true;
+		StringBuilder serverLog = new StringBuilder();
 		try {
 			JsonObject pfdLinesbject=pfdPayload.getAsJsonObject(JsonFields.LINES.getValue());
 			JsonObject planPathsObject=planPayload.getAsJsonObject(JsonFields.PATHS.getValue());
@@ -121,15 +130,18 @@ public class Validator {
 				for (Entry<String, JsonElement> planEntry : planChildset) {
 					if(lineID.equals(planEntry.getKey())) {
 						logger.info("Pfd line id :: {} and Plan line id  ::{}",lineID,planEntry.getKey());
+						serverLog.append(AditazzConstants.LINE_SEPARATOR + "Pfd line id :: "+ lineID + " and Plan line id  :: " + planEntry.getKey());
 						isExistLine=true;
 						break;
 					}
 				}
 				if(!isExistLine) {
 					logger.info("Line is not exists in plan with id  :: {}",lineID);
+					serverLog.append("Line is not exists in plan with id  :: " + lineID);
 					isEqual=false;
 				}
 			}
+			aditazzStatsDTO.getServerLog().append(AditazzConstants.LINE_SEPARATOR + serverLog.toString());
 			aditazzStatsDTO.setNumberOfRulesChecked(aditazzStatsDTO.getNumberOfRulesChecked()+counter);
 		} catch (Exception e) {
 			logger.error("Exception occurred while validating lines "+e.getMessage(),e);
@@ -152,6 +164,7 @@ public class Validator {
 	
 	private boolean  validateEquipments(JsonObject pfdPayloadObject,JsonObject planPayloadObject,AditazzStatsDTO aditazzStatsDTO) {
 		boolean isValid=true;
+		StringBuilder serverLog = new StringBuilder();
 		try {
 			JsonObject planEquipmentObj=planPayloadObject.getAsJsonObject(JsonFields.EQUIPMENT.getValue());
 	    	
@@ -161,6 +174,8 @@ public class Validator {
 			// Equipment Size comparison
 			logger.info("Number of equipments of plan is :: {}",planChildset.size());
 			logger.info("Number of equipments of pfd is :: {}",pfdChildset.size());
+			serverLog.append(AditazzConstants.LINE_SEPARATOR + "Number of equipments of plan is :: " + planChildset.size());
+			serverLog.append(AditazzConstants.LINE_SEPARATOR + "Number of equipments of pfd is :: " + pfdChildset.size());
 			int counter=0;
 			for (Entry<String, JsonElement> pfdEquipment: pfdChildset) {
 				counter++;
@@ -169,16 +184,19 @@ public class Validator {
 				for (Entry<String, JsonElement> planEntry : planChildset) {
 					if(pfdEquipmentId.equals(planEntry.getKey())) {
 						logger.info("Pfd equipment id :: {} and Plan equipment id  ::{}",pfdEquipmentId,planEntry.getKey());
+						serverLog.append("Pfd equipment id :: "+pfdEquipmentId+" and Plan equipment id  :: " + planEntry.getKey());
 						isExists=true;
 						break;
 					}
 				}
 				if(!isExists) {
 					logger.info("Equipment is not exists in plan with id  ::{}",pfdEquipmentId);
+					serverLog.append("Equipment is not exists in plan with id  :: "+pfdEquipmentId);
 					isValid=false;
 				}
 				
 			}
+			aditazzStatsDTO.getServerLog().append(AditazzConstants.LINE_SEPARATOR + serverLog.toString());
 			aditazzStatsDTO.setNumberOfRulesChecked(aditazzStatsDTO.getNumberOfRulesChecked()+counter);
 		}catch (Exception e) {
 			logger.error("Exception occurred while comparing equipments and plan "+e.getMessage(),e);
@@ -222,6 +240,7 @@ public class Validator {
     	ObjectMapper objectMapper = new ObjectMapper();
     	Gson gson=new Gson();
     	boolean isValid=true;
+    	StringBuilder serverLog = new StringBuilder();
     	EquipmentService equipmentService=new EquipmentService();
     	JsonObject planEquipments=planPayload.getAsJsonObject(JsonFields.EQUIPMENT.getValue());
     	JsonObject pfdEquipment=pfdObject.getAsJsonObject(JsonFields.EQUIPMENT.getValue());
@@ -245,17 +264,20 @@ public class Validator {
         			double y=distances.get(JsonFields.Y.getValue());
         			double z=distances.get(JsonFields.Z.getValue());
         			logger.info("Source type :: {} to target type :: {} spacing table distance is :: {} and plan distance X is :: {} Y is ::{} and Z is ::{} ",sourceType,targetType,shortestDistance,x,y,z);
-        			
+        			serverLog.append(AditazzConstants.LINE_SEPARATOR + "Source type :: "+ sourceType +" to target type :: "+ targetType +" spacing table distance is :: "+ shortestDistance +" and plan distance X is :: "+ x +" Y is :: "+ y +" and Z is :: "+z);
         			if(x < shortestDistance && y < shortestDistance && z < shortestDistance) {    			
         				logger.info("Invalid distance found between source type :: {} and target type :: {}",sourceType,targetType);
+        				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Invalid distance found between source type :: "+ sourceType +" and target type :: "+targetType);
         				isValid=false;
         			}
         		}else {
         			logger.info("Invalid distance found between source type :: {} and target type :: {}",sourceType,targetType);
+        			serverLog.append(AditazzConstants.LINE_SEPARATOR + "Invalid distance found between source type :: "+ sourceType +" and target type :: "+targetType);
     				isValid=false;
     			}
     		}
     	}
+    	aditazzStatsDTO.getServerLog().append(AditazzConstants.LINE_SEPARATOR + serverLog.toString());
     	aditazzStatsDTO.setNumberOfRulesChecked(aditazzStatsDTO.getNumberOfRulesChecked()+counter);
     	return isValid;
     }

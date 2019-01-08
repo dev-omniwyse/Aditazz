@@ -16,6 +16,7 @@ public class AditazzConstants {
 	public static final String TOTAL="total";
 	public static final double SECONDS_PER_MINUTE=60;
 	public static final double MSSECONDS_PER_SECOND=1000;
+	public static final String LINE_SEPARATOR = System.getProperty("line.separator");
 }
 
 

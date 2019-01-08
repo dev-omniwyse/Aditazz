@@ -79,6 +79,7 @@ public class AditazzService implements Serializable{
 		String path=environment.getProperty("aditazz.path");
 		properties.load(AditazzService.class.getClassLoader().getResourceAsStream("option_plan.properties"));
 		aditazz=getLibraryIds(aditazz);
+		//List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 		int counter=0;
 		for(Entry<Object, Object> entry : properties.entrySet()) {
 			aditazz.setOptionId(entry.getKey().toString());
@@ -88,7 +89,9 @@ public class AditazzService implements Serializable{
 				List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 				counter++;
 				AditazzStatsDTO aditazzStatsDTO=new AditazzStatsDTO();
-				long start = System.currentTimeMillis( );
+				StringBuilder serverLog = new StringBuilder();
+				serverLog.append("Process started with Option id :: " + entry.getKey());
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Minimum nodes :: "+ inputDTO.getMinNodes() +" Max nodes :: " + inputDTO.getMaxNodes() +" Increment size :: " + inputDTO.getIncrementSize());
 				if(counter != 1)
 					numberOfNodes=numberOfNodes*inputDTO.getIncrementSize();
 				
@@ -103,26 +106,33 @@ public class AditazzService implements Serializable{
 				
 				JsonObject pfdObject=getPfdObject(aditazz);
 				JsonObject equipPayload=equipmentService.getEquipments(aditazz).get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating random graph with Number of equipments :: " + numberOfNodes + "And Number of lines :: " + numberOfEdges);
 				JsonObject payloadObj=randomGraphGenerator.generateRandomGraph(aditazz, numberOfNodes, numberOfEdges);
 				JsonObject updatedEquipments=equipmentService.getEquipments(aditazz);
 				JsonObject updatedLib=updatedEquipments.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				//fileUtil.createFile(path, updatedLib.toString(), "updated_equipment_library");
 				aditazzStatsDTO.setUpdatedLib(updatedLib.toString());
 				int revision=equipmentService.getRevisonNumber(aditazz);
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating equipment revison in projects :: " + revision);
 				updateProjectEquipLibRevison(revision, aditazz);
 				pfdObject.add(JsonFields.PAYLOAD.getValue(), payloadObj);
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating random graph pfd json :: " + aditazz.getPfdId());
 				updatePFD(pfdObject, aditazz) ;
 				//fileUtil.createFile(path, pfdObject.toString(), "updated_pfd");
 				aditazzStatsDTO.setPfdObject(pfdObject.toString());
 				int revison=new JsonReader().getPfdRevision(pfdObject)+1;
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating option with latest revision of pfd :: " + revison);
 				updateOptionRevison(aditazz, revison);
 				//jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
-				
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating plan for option :: " + aditazz.getOptionId());
 				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO) ;
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Getting plan for id :: " + aditazz.getPlanId());
 				JsonObject planObject=getPlan(aditazz);
 				//fileUtil.createFile(path, planObject.toString(), "new_plan");
 				aditazzStatsDTO.setPlanObject(planObject.toString());
 				logger.info("Validating plan and pfd");
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Equivalency check between plan and pfd..");
+				aditazzStatsDTO.getServerLog().append(serverLog.toString());
 				long equivalencyStartTime=System.currentTimeMillis();
 				Map<String,Boolean> result=validator.validatePlanAndPfd(pfdObject, planObject, updatedLib,aditazzStatsDTO);
 				long equivalencyEndTime=System.currentTimeMillis();
@@ -143,7 +153,6 @@ public class AditazzService implements Serializable{
 				logger.info("Updating equipment revison in projects :: {}",revision);
 				updateProjectEquipLibRevison(revision, aditazz);
 				
-				long end = System.currentTimeMillis( );
 				double totalTime = Math.round((aditazzStatsDTO.getEquipmentPlacementTime() + aditazzStatsDTO.getPipeRouterTime() + aditazzStatsDTO.getEquivalencyVerifiedTime())/60*100D)/100D;
 				aditazzStatsDTO.setTotalElpsedTime(totalTime);
 				double throughput = Math.round((aditazzStatsDTO.getNumberOfObjects() * aditazzStatsDTO.getNumberOfRulesChecked())/(aditazzStatsDTO.getEquipmentPlacementTime() + aditazzStatsDTO.getPipeRouterTime() + aditazzStatsDTO.getEquivalencyVerifiedTime())*100D)/100D;
