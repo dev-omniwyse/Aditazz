@@ -2,6 +2,7 @@ package com.aditazz.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import com.aditazz.enums.JsonFields;
 import com.aditazz.model.PlanEquipment;
@@ -63,8 +64,14 @@ public class DistanceUtil {
 			spaces =spacingTable.get(targetType);
 			shortestDistance=spaces.get(sourceType).getAsDouble();
 		}
-		
-		shortestDistance=Math.round((shortestDistance+((shortestDistance/100)*15)) * 100D) / 100D;
+		Random r = new Random();
+		int low = 10;
+		int high = 25;
+		int result = r.nextInt(high-low) + low;
+		if (result >= 15){
+			result = -1*result;
+		}
+		shortestDistance=Math.round((shortestDistance+((shortestDistance/100)*result)) * 100D) / 100D;
 		if(fromSource) {
 			spaces.add(targetType, gson.toJsonTree(shortestDistance));
 			spacingTable.put(sourceType, spaces);
