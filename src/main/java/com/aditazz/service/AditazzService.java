@@ -113,7 +113,7 @@ public class AditazzService implements Serializable{
 				//fileUtil.createFile(path, updatedLib.toString(), "updated_equipment_library");
 				aditazzStatsDTO.setUpdatedLib(updatedLib.toString());
 				int revision=equipmentService.getRevisonNumber(aditazz);
-				if (inputDTO.getSpacing()) {
+				if (!inputDTO.getSpacing()) {
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating equipment revison in projects :: " + revision);
 				updateProjectEquipLibRevison(revision, aditazz);
 				} else {
@@ -128,7 +128,7 @@ public class AditazzService implements Serializable{
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating option with latest revision of pfd :: " + revison);
 				updateOptionRevison(aditazz, revison);
 				//jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
-				if (inputDTO.getPlace()) {
+				if (!inputDTO.getPlace()) {
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating plan for option :: " + aditazz.getOptionId());
 				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO, inputDTO) ;
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Getting plan for id :: " + aditazz.getPlanId());
@@ -152,11 +152,11 @@ public class AditazzService implements Serializable{
 				
 				aditazzStatsDTO.setIsTimedOut("N");
 				
-				/*logger.info("Reverting spacing changes in equipment library ");
+				logger.info("Reverting spacing changes in equipment library ");
 				equipmentService.updateEquipmentLibrary(aditazz, equipPayload,updatedEquipments);
 				revision=equipmentService.getRevisonNumber(aditazz);
 				logger.info("Updating equipment revison in projects :: {}",revision);
-				updateProjectEquipLibRevison(revision, aditazz);*/
+				updateProjectEquipLibRevison(revision, aditazz);
 				
 				double totalTime = Math.round((aditazzStatsDTO.getEquipmentPlacementTime() + aditazzStatsDTO.getPipeRouterTime() + aditazzStatsDTO.getEquivalencyVerifiedTime())/60*100D)/100D;
 				aditazzStatsDTO.setTotalElpsedTime(totalTime);
@@ -171,14 +171,22 @@ public class AditazzService implements Serializable{
 				messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
 			} else {
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Skip Plan updating :: " );
-			}
-			if (inputDTO.getSpacing()){
+				if (!inputDTO.getSpacing()){
 					logger.info("Reverting spacing changes in equipment library ");
+					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Reverting spacing changes in equipment library ::" );
 					equipmentService.updateEquipmentLibrary(aditazz, equipPayload,updatedEquipments);
 					revision=equipmentService.getRevisonNumber(aditazz);
 					logger.info("Updating equipment revison in projects :: {}",revision);
 					updateProjectEquipLibRevison(revision, aditazz);
 				}
+				aditazzStatsDTO.getServerLog().append(serverLog.toString());
+				response.add(aditazzStatsDTO);
+				JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
+		                true, "Success", null,false,
+		                response);
+				messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
+
+			}
 			}
 			logger.info("Process ends with Option id :: {} ",entry.getKey());
 		}
@@ -273,10 +281,10 @@ public class AditazzService implements Serializable{
 			long startTime=System.currentTimeMillis();
 			String runType = runTypes[i];
 			JsonObject output = null;
-			if ("place".equalsIgnoreCase(runType) && inputDTO.getPlace()){
+			if ("place".equalsIgnoreCase(runType) && !inputDTO.getPlace()){
 				output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
 			}
-			if ("route".equalsIgnoreCase(runType) && inputDTO.getRoute()){
+			if ("route".equalsIgnoreCase(runType) && !inputDTO.getRoute()){
 				output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
 			}
 			if (null !=  output){

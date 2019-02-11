@@ -147,7 +147,7 @@ public class RandomGraphGenerator {
 			
 		}
 		payloadLib.add(JsonFields.SPACING.getValue(), new Gson().toJsonTree(spacingTable));
-		if (inputDTO.getSpacing())
+		if (!inputDTO.getSpacing())
 		equipmentService.updateEquipmentLibrary(aditazz, payloadLib,equipmentLib);
 		logger.info("Graph is :: {} ",graph);
 		JsonObject jsonObject=new JsonObject();
