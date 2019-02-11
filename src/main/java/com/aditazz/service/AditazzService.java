@@ -107,14 +107,18 @@ public class AditazzService implements Serializable{
 				JsonObject pfdObject=getPfdObject(aditazz);
 				JsonObject equipPayload=equipmentService.getEquipments(aditazz).get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating random graph with Number of equipments :: " + numberOfNodes + "And Number of lines :: " + numberOfEdges);
-				JsonObject payloadObj=randomGraphGenerator.generateRandomGraph(aditazz, numberOfNodes, numberOfEdges);
+				JsonObject payloadObj=randomGraphGenerator.generateRandomGraph(aditazz, numberOfNodes, numberOfEdges, inputDTO);
 				JsonObject updatedEquipments=equipmentService.getEquipments(aditazz);
 				JsonObject updatedLib=updatedEquipments.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				//fileUtil.createFile(path, updatedLib.toString(), "updated_equipment_library");
 				aditazzStatsDTO.setUpdatedLib(updatedLib.toString());
 				int revision=equipmentService.getRevisonNumber(aditazz);
+				if (inputDTO.getSpacing()) {
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating equipment revison in projects :: " + revision);
 				updateProjectEquipLibRevison(revision, aditazz);
+				} else {
+					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Skip Updating equipment Library :: " );
+				}
 				pfdObject.add(JsonFields.PAYLOAD.getValue(), payloadObj);
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating random graph pfd json :: " + aditazz.getPfdId());
 				updatePFD(pfdObject, aditazz) ;
@@ -124,8 +128,9 @@ public class AditazzService implements Serializable{
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Updating option with latest revision of pfd :: " + revison);
 				updateOptionRevison(aditazz, revison);
 				//jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
+				if (inputDTO.getPlace()) {
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating plan for option :: " + aditazz.getOptionId());
-				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO) ;
+				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO, inputDTO) ;
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Getting plan for id :: " + aditazz.getPlanId());
 				JsonObject planObject=getPlan(aditazz);
 				//fileUtil.createFile(path, planObject.toString(), "new_plan");
@@ -147,11 +152,11 @@ public class AditazzService implements Serializable{
 				
 				aditazzStatsDTO.setIsTimedOut("N");
 				
-				logger.info("Reverting spacing changes in equipment library ");
+				/*logger.info("Reverting spacing changes in equipment library ");
 				equipmentService.updateEquipmentLibrary(aditazz, equipPayload,updatedEquipments);
 				revision=equipmentService.getRevisonNumber(aditazz);
 				logger.info("Updating equipment revison in projects :: {}",revision);
-				updateProjectEquipLibRevison(revision, aditazz);
+				updateProjectEquipLibRevison(revision, aditazz);*/
 				
 				double totalTime = Math.round((aditazzStatsDTO.getEquipmentPlacementTime() + aditazzStatsDTO.getPipeRouterTime() + aditazzStatsDTO.getEquivalencyVerifiedTime())/60*100D)/100D;
 				aditazzStatsDTO.setTotalElpsedTime(totalTime);
@@ -164,6 +169,16 @@ public class AditazzService implements Serializable{
 		                true, "Success", null,false,
 		                response);
 				messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
+			} else {
+				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Skip Plan updating :: " );
+			}
+			if (inputDTO.getSpacing()){
+					logger.info("Reverting spacing changes in equipment library ");
+					equipmentService.updateEquipmentLibrary(aditazz, equipPayload,updatedEquipments);
+					revision=equipmentService.getRevisonNumber(aditazz);
+					logger.info("Updating equipment revison in projects :: {}",revision);
+					updateProjectEquipLibRevison(revision, aditazz);
+				}
 			}
 			logger.info("Process ends with Option id :: {} ",entry.getKey());
 		}
@@ -243,11 +258,12 @@ public class AditazzService implements Serializable{
 	 * @param authToken
 	 * @param optionId
 	 * @param aditazzStatsDTO
+	 * @param inputDTO 
 	 * @return
 	 * @return : String
 	 *
 	 */
-	public String generatePlan(String url, Aditazz aditazz,AditazzStatsDTO aditazzStatsDTO) {
+	public String generatePlan(String url, Aditazz aditazz,AditazzStatsDTO aditazzStatsDTO, InputDTO inputDTO) {
 		logger.info("Generating plan for option :: {}",aditazz.getOptionId());
 		JsonObject emptyEquipment=getEmptyEquipment();
 		String[] runTypes=new String[] {UrlConstants.PLACE,UrlConstants.ROUTE};
@@ -255,7 +271,15 @@ public class AditazzService implements Serializable{
 		
 		for (int i=0;i<runTypes.length;i++) {
 			long startTime=System.currentTimeMillis();
-			JsonObject output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runTypes[i]+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+			String runType = runTypes[i];
+			JsonObject output = null;
+			if ("place".equalsIgnoreCase(runType) && inputDTO.getPlace()){
+				output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+			}
+			if ("route".equalsIgnoreCase(runType) && inputDTO.getRoute()){
+				output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+			}
+			if (null !=  output){
 			String ticketId=output.get(JsonFields.ID.getValue()).getAsString();
 			logger.info("Ticket Id : {} " , ticketId);
 			while (true) {
@@ -276,6 +300,7 @@ public class AditazzService implements Serializable{
 			else if(UrlConstants.ROUTE.equals(runTypes[i]))
 				aditazzStatsDTO.setPipeRouterTime(Math.round((endTime-startTime)/AditazzConstants.MSSECONDS_PER_SECOND*100D)/100D);
 			logger.info("Ticket Status : {} " , status);
+		}
 		}
 		return status;
 	}

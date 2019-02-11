@@ -24,6 +24,12 @@ public class InputDTO {
 	private Integer overAllTimeLimit;
 	
 	private String userName;
+	
+	private Boolean place;
+	
+	private Boolean route;
+	
+	private Boolean spacing;
 
 	public Integer getIterationTimeLimit() {
 		return iterationTimeLimit;
@@ -87,6 +93,30 @@ public class InputDTO {
 
 	public void setUserName(String userName) {
 		this.userName = userName;
+	}
+
+	public Boolean getPlace() {
+		return place;
+	}
+
+	public void setPlace(Boolean place) {
+		this.place = place;
+	}
+
+	public Boolean getRoute() {
+		return route;
+	}
+
+	public void setRoute(Boolean route) {
+		this.route = route;
+	}
+
+	public Boolean getSpacing() {
+		return spacing;
+	}
+
+	public void setSpacing(Boolean spacing) {
+		this.spacing = spacing;
 	}
 	
 }

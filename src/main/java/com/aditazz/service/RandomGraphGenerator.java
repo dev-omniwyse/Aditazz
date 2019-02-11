@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.aditazz.dto.InputDTO;
 import com.aditazz.enums.JsonFields;
 import com.aditazz.model.Aditazz;
 import com.aditazz.model.Line;
@@ -57,6 +58,7 @@ public class RandomGraphGenerator {
 	 * @param aditazz
 	 * @param numberOfNodes
 	 * @param numberOfEdges
+	 * @param inputDTO 
 	 * @return
 	 * @return : JsonObject
 	 * @throws IOException 
@@ -64,7 +66,7 @@ public class RandomGraphGenerator {
 	 * @throws JsonParseException 
 	 *
 	 */
-	public JsonObject generateRandomGraph(Aditazz aditazz,int numberOfNodes,int numberOfEdges) throws   IOException {
+	public JsonObject generateRandomGraph(Aditazz aditazz,int numberOfNodes,int numberOfEdges, InputDTO inputDTO) throws   IOException {
 		ObjectMapper objectMapper = new ObjectMapper();
 		LineService lineService=new LineService();
 		Gson gson=new Gson();
@@ -145,6 +147,7 @@ public class RandomGraphGenerator {
 			
 		}
 		payloadLib.add(JsonFields.SPACING.getValue(), new Gson().toJsonTree(spacingTable));
+		if (inputDTO.getSpacing())
 		equipmentService.updateEquipmentLibrary(aditazz, payloadLib,equipmentLib);
 		logger.info("Graph is :: {} ",graph);
 		JsonObject jsonObject=new JsonObject();
