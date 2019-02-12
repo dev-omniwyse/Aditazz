@@ -290,8 +290,15 @@ public class AditazzService implements Serializable{
 					logger.info("Generating plan with Place for project revision number :: {} and option revision number :: {} ", projectRevision ,optionRevision);
 					output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
 				} catch (Exception e) {
+					List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Failed to Generating plan with Place for project revision number :"+ projectRevision +" and option revision number : "+  optionRevision);
 					logger.info(e.getMessage());
+					aditazzStatsDTO.getServerLog().append(serverLog);
+					response.add(aditazzStatsDTO);
+					JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
+			                false, "Failed to Generating plan with Place", null,false,
+			                response);
+					messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
 					continue;
 				}
 				
@@ -304,8 +311,15 @@ public class AditazzService implements Serializable{
 					logger.info("Generating plan with Route for project revision number :: {} and option revision number :: {} ", projectRevision ,optionRevision);
 					output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
 				} catch (Exception e) {
+					List<AditazzStatsDTO> response = new ArrayList<AditazzStatsDTO>();
 					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Failed to Generating plan with Route for project revision number :"+ projectRevision +" and option revision number : "+  optionRevision);
 					logger.info(e.getMessage());
+					aditazzStatsDTO.getServerLog().append(serverLog);
+					response.add(aditazzStatsDTO);
+					JSONResultEntity<AditazzStatsDTO> results = new JSONResultEntity<AditazzStatsDTO>(
+			                false, "Failed to Generating plan with Route", null,false,
+			                response);
+					messagingTemplate.convertAndSend("/data/tableData/"+inputDTO.getUserName(), results);
 					continue;
 				}
 				
