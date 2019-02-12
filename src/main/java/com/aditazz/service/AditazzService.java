@@ -130,7 +130,7 @@ public class AditazzService implements Serializable{
 				//jsonObject.get(JsonFields.EQUIPMENT_LIBRARIES.getValue()).getAsJsonArray().get(0).getAsJsonObject().get(JsonFields.PAYLOAD.getValue()).getAsJsonObject();
 				if (!inputDTO.getPlace()) {
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating plan for option :: " + aditazz.getOptionId());
-				generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO, inputDTO) ;
+				serverLog = generatePlan(UrlConstants.PLAN_PUT_URL, aditazz,aditazzStatsDTO, inputDTO, serverLog) ;
 				serverLog.append(AditazzConstants.LINE_SEPARATOR + "Getting plan for id :: " + aditazz.getPlanId());
 				JsonObject planObject=getPlan(aditazz);
 				//fileUtil.createFile(path, planObject.toString(), "new_plan");
@@ -267,11 +267,12 @@ public class AditazzService implements Serializable{
 	 * @param optionId
 	 * @param aditazzStatsDTO
 	 * @param inputDTO 
+	 * @param serverLog 
 	 * @return
 	 * @return : String
 	 *
 	 */
-	public String generatePlan(String url, Aditazz aditazz,AditazzStatsDTO aditazzStatsDTO, InputDTO inputDTO) {
+	public StringBuilder generatePlan(String url, Aditazz aditazz,AditazzStatsDTO aditazzStatsDTO, InputDTO inputDTO, StringBuilder serverLog) {
 		logger.info("Generating plan for option :: {}",aditazz.getOptionId());
 		JsonObject emptyEquipment=getEmptyEquipment();
 		String[] runTypes=new String[] {UrlConstants.PLACE,UrlConstants.ROUTE};
@@ -282,10 +283,32 @@ public class AditazzService implements Serializable{
 			String runType = runTypes[i];
 			JsonObject output = null;
 			if ("place".equalsIgnoreCase(runType) && !inputDTO.getPlace()){
-				output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+				int optionRevision = getOptionObject(aditazz);
+				int projectRevision = getProjectObject(aditazz);
+				try {
+					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating plan with Place for project revision number :"+ projectRevision +" and option revision number : "+  optionRevision);
+					logger.info("Generating plan with Place for project revision number :: {} and option revision number :: {} ", projectRevision ,optionRevision);
+					output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+				} catch (Exception e) {
+					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Failed to Generating plan with Place for project revision number :"+ projectRevision +" and option revision number : "+  optionRevision);
+					logger.info(e.getMessage());
+					continue;
+				}
+				
 			}
 			if ("route".equalsIgnoreCase(runType) && !inputDTO.getRoute()){
-				output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+				int optionRevision = getOptionObject(aditazz);
+				int projectRevision = getProjectObject(aditazz);
+				try {
+					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Generating plan with Route for project revision number :"+ projectRevision +" and option revision number : "+  optionRevision);
+					logger.info("Generating plan with Route for project revision number :: {} and option revision number :: {} ", projectRevision ,optionRevision);
+					output = RestUtil.putObject(aditazz.getAuthToken(),emptyEquipment,url+runType+"&project_id="+aditazz.getProjectId()+"&option_id="+aditazz.getOptionId());
+				} catch (Exception e) {
+					serverLog.append(AditazzConstants.LINE_SEPARATOR + "Failed to Generating plan with Route for project revision number :"+ projectRevision +" and option revision number : "+  optionRevision);
+					logger.info(e.getMessage());
+					continue;
+				}
+				
 			}
 			if (null !=  output){
 			String ticketId=output.get(JsonFields.ID.getValue()).getAsString();
@@ -310,7 +333,27 @@ public class AditazzService implements Serializable{
 			logger.info("Ticket Status : {} " , status);
 		}
 		}
-		return status;
+		return serverLog;
+	}
+	/**
+	 * @param aditazz
+	 * @return
+	 */
+	private int getProjectObject(Aditazz aditazz) {
+		JsonObject jsonObject = RestUtil.getObject(aditazz.getAuthToken(), null, UrlConstants.PROJECT_URL+aditazz.getProjectId());
+		JsonObject projectObject = jsonObject.get(JsonFields.PROJECTS.getValue()).getAsJsonArray().get(0).getAsJsonObject();
+		JsonObject revisonObj = projectObject.get(JsonFields.REVISON.getValue()).getAsJsonObject();
+		return Integer.parseInt(revisonObj.get(JsonFields.ID.getValue()).getAsString());
+	}
+	/**
+	 * @param aditazz
+	 * @return
+	 */
+	private int getOptionObject(Aditazz aditazz) {
+		JsonObject jsonObject=RestUtil.getObject(aditazz.getAuthToken(), null, UrlConstants.OPTIONS_URL+aditazz.getOptionId());
+		JsonObject optionObject = jsonObject.get(JsonFields.OPTIONS.getValue()).getAsJsonArray().get(0).getAsJsonObject();
+		JsonObject revisonObj = optionObject.get(JsonFields.REVISON.getValue()).getAsJsonObject();
+		return Integer.parseInt(revisonObj.get(JsonFields.ID.getValue()).getAsString());
 	}
 	/**
 	 * 
